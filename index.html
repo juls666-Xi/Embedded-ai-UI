@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GTE-Small Embedding UI</title>
+
+    <!-- Load Transformers.js from CDN -->
+    <script type="importmap">
+        {
+            "imports": {
+                "@huggingface/transformers": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.1.2/dist/transformers.min.js"
+            }
+        }
+    </script>
+
+    <style>
+        /* ----- reset & base ----- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .card {
+            max-width: 820px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+            padding: 40px 36px;
+            transition: box-shadow 0.2s;
+        }
+        h1 {
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            color: #0b1120;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            font-size: 13px;
+            font-weight: 500;
+            background: #eef2ff;
+            color: #4338ca;
+            padding: 2px 14px;
+            border-radius: 40px;
+            letter-spacing: 0;
+        }
+        .sub {
+            margin-top: 4px;
+            color: #475569;
+            font-size: 15px;
+            border-left: 3px solid #818cf8;
+            padding-left: 14px;
+            background: #f1f5f9;
+            border-radius: 0 8px 8px 0;
+            padding: 8px 16px;
+        }
+        .sub code {
+            background: #e2e8f0;
+            padding: 1px 8px;
+            border-radius: 12px;
+            font-size: 13px;
+        }
+
+        /* ----- input area ----- */
+        .input-area {
+            margin-top: 28px;
+        }
+        textarea {
+            width: 100%;
+            padding: 16px 18px;
+            font-size: 15px;
+            font-family: inherit;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 16px;
+            resize: vertical;
+            min-height: 90px;
+            transition: border 0.2s, box-shadow 0.2s;
+            background: #fafcff;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #818cf8;
+            box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15);
+        }
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 14px;
+            align-items: center;
+        }
+        button {
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button:hover {
+            background: #0f172a;
+        }
+        button:active {
+            transform: scale(0.97);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status {
+            font-size: 14px;
+            color: #64748b;
+            margin-left: 4px;
+        }
+        .status .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2.5px solid #e2e8f0;
+            border-top-color: #4338ca;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ----- output ----- */
+        .output-area {
+            margin-top: 28px;
+            border-top: 1.5px solid #eef2f6;
+            padding-top: 22px;
+        }
+        .output-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .output-label span {
+            font-weight: 400;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        #embeddingOutput {
+            background: #f1f5f9;
+            border-radius: 16px;
+            padding: 16px 18px;
+            margin-top: 8px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+            color: #0f172a;
+            border: 1px solid #e2e8f0;
+        }
+        #embeddingOutput .dim {
+            color: #64748b;
+            font-size: 12px;
+        }
+        #embeddingOutput .vector {
+            color: #1e293b;
+        }
+
+        .similarity-box {
+            margin-top: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px 30px;
+            align-items: center;
+            background: #f8fafc;
+            padding: 14px 20px;
+            border-radius: 14px;
+            border: 1px solid #eef2f6;
+        }
+        .similarity-box label {
+            font-weight: 500;
+            color: #334155;
+            font-size: 14px;
+        }
+        .similarity-box input {
+            flex: 1;
+            min-width: 160px;
+            padding: 8px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 40px;
+            font-size: 14px;
+            background: white;
+        }
+        .similarity-box input:focus {
+            outline: none;
+            border-color: #818cf8;
+        }
+        .sim-result {
+            font-weight: 600;
+            color: #0f172a;
+            background: #eef2ff;
+            padding: 4px 16px;
+            border-radius: 40px;
+            font-size: 15px;
+        }
+
+        .footer-note {
+            margin-top: 22px;
+            font-size: 13px;
+            color: #94a3b8;
+            text-align: center;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 18px;
+        }
+        .footer-note a {
+            color: #4338ca;
+            text-decoration: none;
+        }
+        .footer-note a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>
+            🧠 GTE-Small Embedder
+            <span class="badge">384‑dim</span>
+        </h1>
+        <div class="sub">
+            ⚡ Runs locally in your browser &mdash; same embeddings as
+            <code>ChristianAzinn/gte-small-Q8_0.gguf</code>
+        </div>
+
+        <!-- INPUT -->
+        <div class="input-area">
+            <textarea id="textInput" placeholder="Paste or type text to embed…">That is a happy person</textarea>
+            <div class="actions">
+                <button id="embedBtn">✨ Embed</button>
+                <span class="status" id="status">Ready</span>
+            </div>
+        </div>
+
+        <!-- OUTPUT -->
+        <div class="output-area">
+            <div class="output-label">
+                <span>📦 Embedding vector</span>
+                <span id="dimLabel">—</span>
+            </div>
+            <div id="embeddingOutput">
+                <span class="dim">Run embedding to see the vector…</span>
+            </div>
+
+            <!-- Similarity -->
+            <div class="similarity-box">
+                <label for="compareInput">🔍 Compare similarity</label>
+                <input type="text" id="compareInput" placeholder="Enter second sentence…" value="That is a very happy person" />
+                <button id="similarityBtn" style="padding:6px 18px; font-size:14px;">=</button>
+                <span class="sim-result" id="simResult">—</span>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            Model: <a href="https://huggingface.co/Xenova/gte-small" target="_blank">Xenova/gte-small</a>
+            (ONNX) &middot; 512‑token limit &middot; All processing is 100% local
+        </div>
+    </div>
+
+    <script type="module">
+        // ----- imports -----
+        import { pipeline, cos_sim } from '@huggingface/transformers';
+
+        // ----- DOM refs -----
+        const textInput = document.getElementById('textInput');
+        const embedBtn = document.getElementById('embedBtn');
+        const statusEl = document.getElementById('status');
+        const embeddingOutput = document.getElementById('embeddingOutput');
+        const dimLabel = document.getElementById('dimLabel');
+        const compareInput = document.getElementById('compareInput');
+        const similarityBtn = document.getElementById('similarityBtn');
+        const simResult = document.getElementById('simResult');
+
+        // ----- state -----
+        let extractor = null;
+        let lastEmbedding = null; // store the last computed embedding (Tensor)
+
+        // ----- helper: set status -----
+        function setStatus(msg, isSpinner = false) {
+            if (isSpinner) {
+                statusEl.innerHTML = `<span class="spinner"></span>${msg}`;
+            } else {
+                statusEl.textContent = msg;
+            }
+        }
+
+        // ----- load model on first interaction -----
+        async function getExtractor() {
+            if (extractor) return extractor;
+            setStatus('Loading model (8-bit quantized)…', true);
+            embedBtn.disabled = true;
+            try {
+                // Use the exact same model as the GGUF version, but in ONNX format
+                extractor = await pipeline('feature-extraction', 'Xenova/gte-small', {
+                    dtype: 'q8', // 8-bit quantized → fast & small
+                });
+                setStatus('✅ Model ready');
+                embedBtn.disabled = false;
+                return extractor;
+            } catch (err) {
+                setStatus('❌ Failed to load model');
+                console.error(err);
+                embedBtn.disabled = false;
+                throw err;
+            }
+        }
+
+        // ----- compute embedding -----
+        async function computeEmbedding(text) {
+            if (!text || text.trim() === '') {
+                setStatus('⚠️ Please enter some text');
+                return null;
+            }
+
+            const extractor = await getExtractor();
+            setStatus('Embedding…', true);
+            embedBtn.disabled = true;
+
+            try {
+                // The model expects an array of strings
+                const result = await extractor([text.trim()], {
+                    pooling: 'mean',
+                    normalize: true,
+                });
+
+                // result is a Tensor with shape [1, 384]
+                lastEmbedding = result;
+                const vector = result.tolist()[0]; // convert to plain JS array
+
+                // Display
+                const dims = result.dims; // [1, 384]
+                dimLabel.textContent = `dim: ${dims[1]}`;
+
+                const preview = vector.slice(0, 12).map(v => v.toFixed(6)).join(', ');
+                embeddingOutput.innerHTML = `
+                    <span class="dim">[${dims[1]}‑dim vector]</span>
+                    <span class="vector">[ ${preview}, … ]</span>
+                `;
+
+                setStatus(`✅ Done (${dims[1]} dims)`);
+                embedBtn.disabled = false;
+                return result;
+            } catch (err) {
+                setStatus('❌ Error during embedding');
+                console.error(err);
+                embedBtn.disabled = false;
+                return null;
+            }
+        }
+
+        // ----- compute similarity -----
+        async function computeSimilarity() {
+            const text1 = textInput.value.trim();
+            const text2 = compareInput.value.trim();
+
+            if (!text1 || !text2) {
+                simResult.textContent = '⚠️ Both sentences required';
+                return;
+            }
+
+            // If we don't have an embedding for text1, compute it first
+            let emb1 = lastEmbedding;
+            if (!emb1 || text1 !== lastTextComputed) {
+                // We need to re-embed text1 to be sure
+                const result = await computeEmbedding(text1);
+                if (!result) return;
+                emb1 = result;
+                // store which text we embedded
+                window.lastTextComputed = text1;
+            }
+
+            // Embed text2
+            setStatus('Computing similarity…', true);
+            similarityBtn.disabled = true;
+
+            try {
+                const extractor = await getExtractor();
+                const emb2 = await extractor([text2], {
+                    pooling: 'mean',
+                    normalize: true,
+                });
+
+                // cosine similarity
+                const sim = cos_sim(emb1, emb2);
+                // cos_sim returns a Tensor, get the scalar
+                const simValue = typeof sim === 'object' && sim.data ? sim.data[0] : sim;
+                const formatted = typeof simValue === 'number' ? simValue.toFixed(6) : '—';
+                simResult.textContent = formatted;
+
+                setStatus('✅ Similarity computed');
+            } catch (err) {
+                setStatus('❌ Similarity error');
+                console.error(err);
+                simResult.textContent = 'Error';
+            } finally {
+                similarityBtn.disabled = false;
+            }
+        }
+
+        // Store last text we embedded to avoid re-embedding unnecessarily
+        window.lastTextComputed = '';
+
+        // ----- event listeners -----
+        embedBtn.addEventListener('click', async () => {
+            const text = textInput.value;
+            await computeEmbedding(text);
+            if (text.trim()) window.lastTextComputed = text.trim();
+        });
+
+        similarityBtn.addEventListener('click', computeSimilarity);
+
+        // Also allow Enter key in the textareas (shift+Enter for newline)
+        textInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                embedBtn.click();
+            }
+        });
+
+        compareInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                similarityBtn.click();
+            }
+        });
+
+        // Auto-embed on first load with the default text
+        setTimeout(async () => {
+            const defaultText = textInput.value.trim();
+            if (defaultText) {
+                await computeEmbedding(defaultText);
+                window.lastTextComputed = defaultText;
+            }
+        }, 300);
+
+        console.log('🚀 GTE-Small Embedding UI ready');
+        console.log('📦 Model: Xenova/gte-small (ONNX, Q8) — identical to GGUF');
+    </script>
+</body>
+</html>
